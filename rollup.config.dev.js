@@ -33,41 +33,41 @@ const config = [
       // terser(),
     ],
   },
-  {
-    input: 'demo/testAudioSource.js',
-    output: [
-      {
-        file: 'demo/testAudio.js',
-        format: 'umd',
-        name: 'Test',
-      },
-    ],
-    external: ['react', 'react-dom', 'chat-ui'],
-    plugins: [
-      nodeResolve({
-        extensions:['.ts','.js']
-      }),
-      typescript({
-        useTsconfigDeclarationDir: true,
-      }),
-      // babel({
-      //   // exclude: 'node_modules/**',
-      //   // extensions: ['.ts'],
-      //   extensions: [
-      //     ...DEFAULT_EXTENSIONS,
-      //     '.ts',
-      //     '.tsx'
-      //   ]
-      // }),
-      // terser(),
-      // babel({
-      //   runtimeHelpers: true,
-      //   exclude: 'node_modules/**',
-      // }),
-      // livereload(),
-      // serve('demo'),
-    ],
-  },
+  // {
+  //   input: 'demo/testAudioSource.js',
+  //   output: [
+  //     {
+  //       file: 'demo/testAudio.js',
+  //       format: 'umd',
+  //       name: 'Test',
+  //     },
+  //   ],
+  //   external: ['react', 'react-dom', 'chat-ui'],
+  //   plugins: [
+  //     nodeResolve({
+  //       extensions:['.ts','.js']
+  //     }),
+  //     typescript({
+  //       useTsconfigDeclarationDir: true,
+  //     }),
+  //     // babel({
+  //     //   // exclude: 'node_modules/**',
+  //     //   // extensions: ['.ts'],
+  //     //   extensions: [
+  //     //     ...DEFAULT_EXTENSIONS,
+  //     //     '.ts',
+  //     //     '.tsx'
+  //     //   ]
+  //     // }),
+  //     // terser(),
+  //     // babel({
+  //     //   runtimeHelpers: true,
+  //     //   exclude: 'node_modules/**',
+  //     // }),
+  //     // livereload(),
+  //     // serve('demo'),
+  //   ],
+  // },
 ];
 
 export default config;

@@ -16,35 +16,40 @@
 			token:'327919',
 			appKey:'virtual-human-lab',
 			tenant:'20000',
-			options:{},
 			onMessageCallback:(data) => {
 				console.log('onMessageCallback-------',data)
 			}
 		})
 		client.connect();
-		client.start();
-		// setTimeout(()=>{
-		// 	client.sendText('你好呀');
-		// },2000);
+		try{
+			client.sendText('你好呀');
+		} catch(e){
+			console.log(e);
+		}
+		client.start({dialogMode:"open"});
+		client.sessionReady.then((msg)=>{
+			console.log('Promise************',msg)
+			client.sendText('你好呀');
+		})
 		
-		const mediaLib = new AvatarMedia({
-			video: false,
-			audio: true,
-		});
+		// const mediaLib = new AvatarMedia({
+		// 	video: false,
+		// 	audio: true,
+		// });
 
-		navigator.mediaDevices.getUserMedia({
-			video: false,
-			audio: true,
-		})
-		.then(function(stream) {
-			mediaLib.setStream(stream);
-		});
+		// navigator.mediaDevices.getUserMedia({
+		// 	video: false,
+		// 	audio: true,
+		// })
+		// .then(function(stream) {
+		// 	mediaLib.setStream(stream);
+		// });
 
-		mediaLib.on('data', data => {
-			const { audio } = data;
-			// base64数据
-			client.sendAudio(audio.data)
-		})
+		// mediaLib.on('data', data => {
+		// 	const { audio } = data;
+		// 	// base64数据
+		// 	client.sendAudio(audio.data)
+		// })
 		// const duplexCommand = {
 		// 	robotAction: "QA/UNDERTAKE/INTERRUPT",
 		// 	inputASR:"",

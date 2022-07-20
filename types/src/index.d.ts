@@ -1,5 +1,17 @@
 import Socket from './socket';
 import { Reconnect } from './reconnect';
+declare type StartOptions = {
+    dialogMode?: "cloud" | "aliYunChat";
+    duplexMode?: "cloud" | "client" | "blend";
+    outputMode?: "video" | "audio";
+    videoOpen?: "0" | "1";
+    format?: string;
+    sampleRate?: string;
+    emotion?: string;
+    voice?: string;
+    characterCode?: string;
+    extInfo?: string;
+} | {};
 declare type AvatarIMInput = {
     url: string;
     token: string;
@@ -15,17 +27,19 @@ export default class AvatarIM {
     emit: any;
     on: any;
     im: Socket;
+    sessionReady: Promise<any>;
     protected _reconnect: Reconnect;
     protected _preMessageTime: number;
     protected _pingInterval: any;
     protected _pongInterval: any;
+    private sessionOpen;
     constructor({ url, token, appKey, tenant, onMessageCallback }: AvatarIMInput);
     connect(): void;
     /**
    * 关闭IM连接
    */
     close(): void;
-    start(startOptions: any): void;
+    start(startOptions: StartOptions): void;
     suspend(): void;
     recover(): void;
     stop(): void;

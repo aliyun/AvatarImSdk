@@ -322,10 +322,12 @@
 	    emit; // from mitt
 	    on; // from mitt
 	    im; // Socket实例
+	    sessionReady;
 	    _reconnect;
 	    _preMessageTime;
 	    _pingInterval;
 	    _pongInterval;
+	    sessionOpen = false; // 会话是否开启
 	    constructor({ url, token, appKey, tenant, onMessageCallback }) {
 	        const sessionId = generateRandomId(); // 随机生成sessionId
 	        const fullUrl = getFullUrl(url, token, appKey, tenant);
@@ -335,6 +337,14 @@
 	            appKey,
 	            onMessageCallback,
 	            ...mitt()
+	        });
+	        this.sessionReady = new Promise((resolve, reject) => {
+	            this.on(MESSAGE, (msg) => {
+	                if (msg.content.type === 'startResult') {
+	                    this.sessionOpen = true;
+	                    resolve(msg);
+	                }
+	            });
 	        });
 	        this._reconnect = getReconnect(this);
 	        this.connect(); // 初始化时建立连接
@@ -379,6 +389,9 @@
 	    }
 	    suspend() {
 	        /**会话开始暂停 */
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
 	        const msg = {
 	            type: "suspend",
 	            sessionId: this.sessionId
@@ -386,6 +399,9 @@
 	        this.sendMessage(msg);
 	    }
 	    recover() {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
 	        const msg = {
 	            type: "recover",
 	            sessionId: this.sessionId
@@ -393,6 +409,9 @@
 	        this.sendMessage(msg);
 	    }
 	    stop() {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
 	        const msg = {
 	            type: "stop",
 	            sessionId: this.sessionId
@@ -400,6 +419,9 @@
 	        this.sendMessage(msg);
 	    }
 	    refreshContext(options) {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
 	        const msg = {
 	            type: "refreshContext",
 	            sessionId: this.sessionId,
@@ -408,24 +430,33 @@
 	        this.sendMessage(msg);
 	    }
 	    sendText(text, duplexCommand = {}) {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
 	        const msg = {
 	            type: "dataSend",
 	            sessionId: this.sessionId,
 	            text,
-	            duplexCommand: duplexCommand || undefined
+	            // duplexCommand: duplexCommand||undefined
 	        };
 	        this.sendMessage(msg);
 	    }
 	    sendAudio(audio, duplexCommand = {}) {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
 	        const msg = {
 	            type: "dataSend",
 	            sessionId: this.sessionId,
 	            audio,
-	            duplexCommand: duplexCommand || undefined
+	            // duplexCommand: duplexCommand||undefined
 	        };
 	        this.sendMessage(msg);
 	    }
 	    broadcastStatus(sentenceId, status) {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
 	        ({
 	            type: "broadcastStatus",
 	            sessionId: this.sessionId,
@@ -433,6 +464,16 @@
 	            status
 	        });
 	    }
+	    // public connectReady(){
+	    // 	return new Promise((resolve,reject) => {
+	    // 	})
+	    // }
+	    // public sessionReady(){
+	    // 	/**
+	    // 	 * 会话开始
+	    // 	 */
+	    // 	return 
+	    // }
 	    /**
 	   * 参考 ws.readyState
 	   * CONNECTING：值为0，表示正在连接。
@@ -538,6 +579,10 @@
 	        }
 	    }
 	    _bindEvt(im) {
+	        this.on(MESSAGE, () => {
+	        });
+	        this.on(OPEN, () => {
+	        });
 	        const onOpen = () => {
 	            this._reconnect.success();
 	            actionQueue.exec();
