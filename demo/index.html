@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Document</title>
+</head>
+<body>
+	<script src="./index.js"></script>
+	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+	<script src="https://dev.g.alicdn.com/liveme-console/media-to-data/0.0.2/app.js"></script>
+	<script>
+		const client = new AvatarIM({
+			url:'wss://pre-avatar-im.console.aliyun.com/ws',
+			token:'327919',
+			appKey:'virtual-human-lab',
+			tenant:'20000',
+			options:{},
+			onMessageCallback:(data) => {
+				console.log('onMessageCallback-------',data)
+			}
+		})
+		client.connect();
+		client.start();
+		// setTimeout(()=>{
+		// 	client.sendText('你好呀');
+		// },2000);
+		
+		const mediaLib = new AvatarMedia({
+			video: false,
+			audio: true,
+		});
+
+		navigator.mediaDevices.getUserMedia({
+			video: false,
+			audio: true,
+		})
+		.then(function(stream) {
+			mediaLib.setStream(stream);
+		});
+
+		mediaLib.on('data', data => {
+			const { audio } = data;
+			// base64数据
+			client.sendAudio(audio.data)
+		})
+		// const duplexCommand = {
+		// 	robotAction: "QA/UNDERTAKE/INTERRUPT",
+		// 	inputASR:"",
+		// 	turnTakingAction:"",
+		// 	priority: 0,
+		// 	robotOutputText: "",
+		// 	robotActionInfo:[
+		// 		{
+		// 			actionLabel:"",
+		// 			beginIndex:0,
+		// 			endIndex:-1,
+		// 			interrupt:false
+		// 		},
+		// 		{
+		// 			actionLabel:"",
+		// 			beginIndex:5,
+		// 			endIndex:20,
+		// 			interrupt:false
+		// 		}
+		// 	]
+		// }      
+
+	</script>
+	<!-- <script src="./testAudio.js"></script> -->
+	<!-- <script>
+	</script> -->
+</body>
+</html>
