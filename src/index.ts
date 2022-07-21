@@ -43,6 +43,7 @@ type AvatarIMInput = {
 	token: string;
 	appKey: string;
 	tenant: string;
+	sessionId: string;
 	// startOptions?: StartOptions; // 会话开始参数，不传全部取默认值
 	onMessageCallback: Function // 处理消息的回调
 }
@@ -66,8 +67,7 @@ export default class AvatarIM{
 	private sessionOpen: boolean = false; // 会话是否开启
 	
 
-	constructor({url,token, appKey, tenant,onMessageCallback}:AvatarIMInput){
-		const sessionId =  generateRandomId(); // 随机生成sessionId
+	constructor({url,token, appKey, tenant, sessionId, onMessageCallback}:AvatarIMInput){
 		const fullUrl = getFullUrl(url,token, appKey, tenant);
 		Object.assign(this,{ // 用户输入注册到this
 			sessionId,
@@ -76,7 +76,7 @@ export default class AvatarIM{
 			onMessageCallback,
 			...mitt()
 		})
-
+		console.log('constructor')
 		this.sessionReady = new Promise((resolve,reject)=>{
 			this.on(MESSAGE,(msg)=>{
 				if(msg.content.type === 'startResult'){
@@ -90,6 +90,7 @@ export default class AvatarIM{
 	}
 
 	public connect(){
+		console.log('-----connect')
 		/**尝试建立连接*/
 		try{
 			const im = new Socket(this.url);
@@ -129,28 +130,29 @@ export default class AvatarIM{
 		this.sendMessage(msg);
 	}
 
-	public suspend(){
-		/**会话开始暂停 */
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
-		const msg = {
-			type:"suspend",
-			sessionId:this.sessionId
-		};
-		this.sendMessage(msg);
-	}
 
-	public recover(){
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
-		const msg = {
-			type:"recover",
-			sessionId:this.sessionId
-		};
-		this.sendMessage(msg);
-	}
+	// public suspend(){
+	// 	/**会话开始暂停 */
+	// 	if(!this.sessionOpen){
+	// 		throw Error('会话通道尚未开启');
+	// 	}
+	// 	const msg = {
+	// 		type:"suspend",
+	// 		sessionId:this.sessionId
+	// 	};
+	// 	this.sendMessage(msg);
+	// }
+
+	// public recover(){
+	// 	if(!this.sessionOpen){
+	// 		throw Error('会话通道尚未开启');
+	// 	}
+	// 	const msg = {
+	// 		type:"recover",
+	// 		sessionId:this.sessionId
+	// 	};
+	// 	this.sendMessage(msg);
+	// }
 
 	public stop(){
 		if(!this.sessionOpen){
@@ -161,6 +163,7 @@ export default class AvatarIM{
 			sessionId:this.sessionId
 		};
 		this.sendMessage(msg);
+		this.sessionOpen = false;
 	}
 
 	public refreshContext(options){
@@ -188,14 +191,20 @@ export default class AvatarIM{
 		this.sendMessage(msg);
 	}
 
-	public sendAudio(audio:string,duplexCommand={}){
+	public sendAudio(
+		{
+			format,
+			base64,
+		}
+	){
 		if(!this.sessionOpen){
 			throw Error('会话通道尚未开启');
 		}
 		const msg = {
 			type:"dataSend",
 			sessionId:this.sessionId,
-			audio,
+			audio:base64,
+			format
 			// duplexCommand: duplexCommand||undefined
 		};
 		this.sendMessage(msg);
@@ -282,7 +291,8 @@ export default class AvatarIM{
         new Date().getTime() - this._preMessageTime >
         KEEPALIVE_INTERVAL * 2 + 100
       ) {
-        this._mockHeartbeatTimeout();
+				console.log('pong超时')
+        // this._mockHeartbeatTimeout();
         this.close();
       }
     }, 60 * 1000);
@@ -421,6 +431,7 @@ export default class AvatarIM{
 						im.off(ERROR, onError);
 						im.off(CLOSE, onClose);
 						// 断开IM，断开连接
+						console.log('---服务端主动断开-----')
 						this.close();
 					}
 					break;

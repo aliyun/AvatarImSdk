@@ -11,6 +11,7 @@
    status: string;
    emit: any;
    constructor(url:string) { // startWorks已经鉴权完毕
+    console.log('new Socket')
     //  console.log(url, '>>>getWsUrl');
      const ws = new WebSocket(url);
     //  console.log(ws, '>>>ws');
@@ -28,6 +29,7 @@
      this.ws.send(data);
    }
    close(): void { // WebSocket.close();
+     console.log('前端触发close')
      this.status = 'offline';
      this.ws.close();
    }

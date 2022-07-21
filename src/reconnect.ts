@@ -48,6 +48,7 @@ export class Reconnect implements IReconnect {
     return time;
   }
   exec(code: string, err?: any): void {
+    console.log(this._counter);
     // 使用指数避退算法确定重连时间，防止并发过多
     const t = this._backoff(this._counter);
     // 防止重复重连

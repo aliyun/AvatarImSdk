@@ -17,6 +17,7 @@ declare type AvatarIMInput = {
     token: string;
     appKey: string;
     tenant: string;
+    sessionId: string;
     onMessageCallback: Function;
 };
 export default class AvatarIM {
@@ -33,19 +34,20 @@ export default class AvatarIM {
     protected _pingInterval: any;
     protected _pongInterval: any;
     private sessionOpen;
-    constructor({ url, token, appKey, tenant, onMessageCallback }: AvatarIMInput);
+    constructor({ url, token, appKey, tenant, sessionId, onMessageCallback }: AvatarIMInput);
     connect(): void;
     /**
    * 关闭IM连接
    */
     close(): void;
     start(startOptions: StartOptions): void;
-    suspend(): void;
-    recover(): void;
     stop(): void;
     refreshContext(options: any): void;
     sendText(text: string, duplexCommand?: {}): void;
-    sendAudio(audio: string, duplexCommand?: {}): void;
+    sendAudio({ format, base64, }: {
+        format: any;
+        base64: any;
+    }): void;
     broadcastStatus(sentenceId: string, status: string): void;
     /**
    * 参考 ws.readyState

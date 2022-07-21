@@ -120,6 +120,7 @@
 	    status;
 	    emit;
 	    constructor(url) {
+	        console.log('new Socket');
 	        //  console.log(url, '>>>getWsUrl');
 	        const ws = new WebSocket(url);
 	        //  console.log(ws, '>>>ws');
@@ -137,6 +138,7 @@
 	        this.ws.send(data);
 	    }
 	    close() {
+	        console.log('前端触发close');
 	        this.status = 'offline';
 	        this.ws.close();
 	    }
@@ -230,6 +232,7 @@
 	        return time;
 	    }
 	    exec(code, err) {
+	        console.log(this._counter);
 	        // 使用指数避退算法确定重连时间，防止并发过多
 	        const t = this._backoff(this._counter);
 	        // 防止重复重连
@@ -328,8 +331,7 @@
 	    _pingInterval;
 	    _pongInterval;
 	    sessionOpen = false; // 会话是否开启
-	    constructor({ url, token, appKey, tenant, onMessageCallback }) {
-	        const sessionId = generateRandomId(); // 随机生成sessionId
+	    constructor({ url, token, appKey, tenant, sessionId, onMessageCallback }) {
 	        const fullUrl = getFullUrl(url, token, appKey, tenant);
 	        Object.assign(this, {
 	            sessionId,
@@ -338,6 +340,7 @@
 	            onMessageCallback,
 	            ...mitt()
 	        });
+	        console.log('constructor');
 	        this.sessionReady = new Promise((resolve, reject) => {
 	            this.on(MESSAGE, (msg) => {
 	                if (msg.content.type === 'startResult') {
@@ -350,6 +353,7 @@
 	        this.connect(); // 初始化时建立连接
 	    }
 	    connect() {
+	        console.log('-----connect');
 	        /**尝试建立连接*/
 	        try {
 	            const im = new Socket(this.url);
@@ -387,27 +391,27 @@
 	        });
 	        this.sendMessage(msg);
 	    }
-	    suspend() {
-	        /**会话开始暂停 */
-	        if (!this.sessionOpen) {
-	            throw Error('会话通道尚未开启');
-	        }
-	        const msg = {
-	            type: "suspend",
-	            sessionId: this.sessionId
-	        };
-	        this.sendMessage(msg);
-	    }
-	    recover() {
-	        if (!this.sessionOpen) {
-	            throw Error('会话通道尚未开启');
-	        }
-	        const msg = {
-	            type: "recover",
-	            sessionId: this.sessionId
-	        };
-	        this.sendMessage(msg);
-	    }
+	    // public suspend(){
+	    // 	/**会话开始暂停 */
+	    // 	if(!this.sessionOpen){
+	    // 		throw Error('会话通道尚未开启');
+	    // 	}
+	    // 	const msg = {
+	    // 		type:"suspend",
+	    // 		sessionId:this.sessionId
+	    // 	};
+	    // 	this.sendMessage(msg);
+	    // }
+	    // public recover(){
+	    // 	if(!this.sessionOpen){
+	    // 		throw Error('会话通道尚未开启');
+	    // 	}
+	    // 	const msg = {
+	    // 		type:"recover",
+	    // 		sessionId:this.sessionId
+	    // 	};
+	    // 	this.sendMessage(msg);
+	    // }
 	    stop() {
 	        if (!this.sessionOpen) {
 	            throw Error('会话通道尚未开启');
@@ -417,6 +421,7 @@
 	            sessionId: this.sessionId
 	        };
 	        this.sendMessage(msg);
+	        this.sessionOpen = false;
 	    }
 	    refreshContext(options) {
 	        if (!this.sessionOpen) {
@@ -441,14 +446,15 @@
 	        };
 	        this.sendMessage(msg);
 	    }
-	    sendAudio(audio, duplexCommand = {}) {
+	    sendAudio({ format, base64, }) {
 	        if (!this.sessionOpen) {
 	            throw Error('会话通道尚未开启');
 	        }
 	        const msg = {
 	            type: "dataSend",
 	            sessionId: this.sessionId,
-	            audio,
+	            audio: base64,
+	            format
 	            // duplexCommand: duplexCommand||undefined
 	        };
 	        this.sendMessage(msg);
@@ -528,7 +534,8 @@
 	        return setInterval(() => {
 	            if (new Date().getTime() - this._preMessageTime >
 	                KEEPALIVE_INTERVAL * 2 + 100) {
-	                this._mockHeartbeatTimeout();
+	                console.log('pong超时');
+	                // this._mockHeartbeatTimeout();
 	                this.close();
 	            }
 	        }, 60 * 1000);
@@ -648,6 +655,7 @@
 	                        im.off(ERROR, onError);
 	                        im.off(CLOSE, onClose);
 	                        // 断开IM，断开连接
+	                        console.log('---服务端主动断开-----');
 	                        this.close();
 	                    }
 	                    break;

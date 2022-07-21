@@ -7,74 +7,72 @@
 	<title>Document</title>
 </head>
 <body>
+	<button id="startSession">开始会话</button>
+	<button id="stopSession">结束会话</button>
+	<button id="sendText">发送文字</button>
+	<button id="startRecording">开始录音</button>
+	<button id="stopRecording">停止录音</button>
 	<script src="./index.js"></script>
 	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 	<script src="https://dev.g.alicdn.com/liveme-console/media-to-data/0.0.2/app.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 	<script>
 		const client = new AvatarIM({
 			url:'wss://pre-avatar-im.console.aliyun.com/ws',
 			token:'327919',
 			appKey:'virtual-human-lab',
 			tenant:'20000',
+			sessionId: "7e86d753-03f3-49bb-a0a4-0e1110686541",
 			onMessageCallback:(data) => {
 				console.log('onMessageCallback-------',data)
 			}
 		})
-		client.connect();
-		try{
-			client.sendText('你好呀');
-		} catch(e){
-			console.log(e);
-		}
-		client.start({dialogMode:"open"});
-		client.sessionReady.then((msg)=>{
-			console.log('Promise************',msg)
-			client.sendText('你好呀');
+
+		const mediaLib = new AvatarMedia({
+				video: false,
+				audio: true,
+		});
+
+		document.getElementById('startRecording').addEventListener('click',()=>{
+			navigator.mediaDevices.getUserMedia({
+				video: false,
+				audio: true,
+			})
+			.then(function(stream) {
+				mediaLib.setStream(stream);
+			});
+
+			mediaLib.on('data', data => {
+				console.log(data);
+				const { audio } = data;
+				const [format,base64] = audio.data.split(',');
+				client.sessionReady.then(()=>{
+					client.sendAudio({
+						format:'wav',
+						base64,
+					});
+				});
+			})
 		})
 		
-		// const mediaLib = new AvatarMedia({
-		// 	video: false,
-		// 	audio: true,
-		// });
+		document.getElementById('stopRecording').addEventListener('click',() => {
+			mediaLib.destory();
+		});
 
-		// navigator.mediaDevices.getUserMedia({
-		// 	video: false,
-		// 	audio: true,
-		// })
-		// .then(function(stream) {
-		// 	mediaLib.setStream(stream);
-		// });
+		document.getElementById('startSession').addEventListener('click',() => {
+			client.start({dialogMode:"open"});
+		});
 
-		// mediaLib.on('data', data => {
-		// 	const { audio } = data;
-		// 	// base64数据
-		// 	client.sendAudio(audio.data)
-		// })
-		// const duplexCommand = {
-		// 	robotAction: "QA/UNDERTAKE/INTERRUPT",
-		// 	inputASR:"",
-		// 	turnTakingAction:"",
-		// 	priority: 0,
-		// 	robotOutputText: "",
-		// 	robotActionInfo:[
-		// 		{
-		// 			actionLabel:"",
-		// 			beginIndex:0,
-		// 			endIndex:-1,
-		// 			interrupt:false
-		// 		},
-		// 		{
-		// 			actionLabel:"",
-		// 			beginIndex:5,
-		// 			endIndex:20,
-		// 			interrupt:false
-		// 		}
-		// 	]
-		// }      
+		document.getElementById('stopSession').addEventListener('click',() => {
+			client.stop();
+		});
+
+		document.getElementById('sendText').addEventListener('click',() => {
+			client.sessionReady.then(() => {
+				client.sendText('你好呀');
+			})
+		});
 
 	</script>
-	<!-- <script src="./testAudio.js"></script> -->
-	<!-- <script>
-	</script> -->
 </body>
 </html>
