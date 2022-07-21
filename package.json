@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "devDependencies": {
-    "@ali/media-to-data": "0.0.2",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@typescript-eslint/eslint-plugin": "^5.2.0",
