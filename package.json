@@ -29,6 +29,9 @@
     "dev": "rollup -c rollup.config.dev.js --watch",
     "build": "rollup -c"
   },
+  "publishConfig": {
+    "registry": "https://registry.antfin-inc.com"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC"
