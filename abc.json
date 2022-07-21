@@ -2,7 +2,16 @@
   "assets": {
     "type": "command",
     "command": {
-      "cmd": ["tnpm i", "tnpm run build", "mv ./build $BUILD_DEST"]
+      "cmd": [
+        "tnpm i",
+        "tnpm run build",
+
+        "mkdir -p $BUILD_DEST/dist",
+        "cp -r ./build/* $BUILD_DEST/dist",
+
+        "mv ./build/* $BUILD_DEST/",
+        "mv ./package.json $BUILD_DEST/"
+      ]
     }
   }
 }
