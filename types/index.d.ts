@@ -1,3 +1,6 @@
+import Socket from './socket'
+import {Reconnect} from './reconnect'
+
 type StartOptions = {
 	dialogMode?: "cloud" | "aliYunChat"; // 对话模式：open:开放域对话 , aliYunChat 云小蜜对话，默认aliYunChat
 	duplexMode?: "cloud" | "client" | "blend"; // 双工模式：cloud:全云模式（默认），client:全客户端模式，blend：混合模式（端云模式）
@@ -37,16 +40,16 @@ export default class AvatarIM{
   protected _pingInterval: any;
   protected _pongInterval: any;
 
-	private sessionOpen: boolean = false; // 会话是否开启
+	private sessionOpen: boolean; // 会话是否开启
 
-  constructor({url,token, appKey, tenant, sessionId, onMessageCallback}:AvatarIMInput):void;
+  constructor({url,token, appKey, tenant, sessionId, onMessageCallback}:AvatarIMInput);
 
   public connect():void;
   public close():void;
   public start(startOptions:StartOptions):void;
   public stop():void;
   public refreshContext(options:any):void
-  public sendText(text:string,duplexCommand={}):void;
+  public sendText(text:string,duplexCommand:object):void;
   public sendAudio({
     format,
     base64,
