@@ -33,17 +33,18 @@
 				audio: true,
 		});
 
+		// getTracks().forEach
+		let localStream;
 		document.getElementById('startRecording').addEventListener('click',()=>{
 			navigator.mediaDevices.getUserMedia({
 				video: false,
 				audio: true,
-			})
-			.then(function(stream) {
+			}).then(function(stream) {
+				localStream = stream;
 				mediaLib.setStream(stream);
-			});
+			})
 
 			mediaLib.on('data', data => {
-				console.log(data);
 				const { audio } = data;
 				const [format,base64] = audio.data.split(',');
 				client.sessionReady.then(()=>{
@@ -57,6 +58,9 @@
 		
 		document.getElementById('stopRecording').addEventListener('click',() => {
 			mediaLib.destory();
+			localStream.getTracks().forEach(track => {
+				track.stop();
+			})
 		});
 
 		document.getElementById('startSession').addEventListener('click',() => {
@@ -68,9 +72,7 @@
 		});
 
 		document.getElementById('sendText').addEventListener('click',() => {
-			client.sessionReady.then(() => {
-				client.sendText('你好呀');
-			})
+			client.sendText('你好呀');
 		});
 
 	</script>

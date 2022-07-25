@@ -8,3 +8,7 @@ export declare function makeMsgBody(code: number, msg: object): string;
  *
  */
 export declare function generateRandomId(): string;
+/**
+ * 拼接完整url
+ */
+export function getFullUrl(url:string, token:string, appKey:string, tenant:string): string;

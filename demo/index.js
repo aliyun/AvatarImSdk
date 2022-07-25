@@ -341,14 +341,15 @@
 	            ...mitt()
 	        });
 	        console.log('constructor');
-	        this.sessionReady = new Promise((resolve, reject) => {
-	            this.on(MESSAGE, (msg) => {
-	                if (msg.content.type === 'startResult') {
-	                    this.sessionOpen = true;
-	                    resolve(msg);
-	                }
-	            });
-	        });
+	        // this.sessionReady = new Promise((resolve,reject)=>{
+	        // 	this.on(MESSAGE,(msg)=>{
+	        // 		if(msg.content.type === 'startResult'){
+	        // 			this.sessionOpen = true;
+	        // 			resolve(msg);
+	        // 		}
+	        // 	})
+	        // })
+	        this.sessionReady = new Promise(() => { });
 	        this._reconnect = getReconnect(this);
 	        this.connect(); // 初始化时建立连接
 	    }
@@ -389,6 +390,15 @@
 	        startOptions && Object.keys(startOptions).forEach((key) => {
 	            msg[key] = startOptions[key] || startDefaultOptions[key];
 	        });
+	        // 刷新promise
+	        this.sessionReady = new Promise((resolve, reject) => {
+	            this.on(MESSAGE, (msg) => {
+	                if (msg.content.type === 'startResult') {
+	                    this.sessionOpen = true;
+	                    resolve(msg);
+	                }
+	            });
+	        });
 	        this.sendMessage(msg);
 	    }
 	    // public suspend(){
@@ -422,6 +432,7 @@
 	        };
 	        this.sendMessage(msg);
 	        this.sessionOpen = false;
+	        this.sessionReady = new Promise(() => { }); // 重制sessionReady为空
 	    }
 	    refreshContext(options) {
 	        if (!this.sessionOpen) {
@@ -435,9 +446,9 @@
 	        this.sendMessage(msg);
 	    }
 	    sendText(text, duplexCommand = {}) {
-	        if (!this.sessionOpen) {
-	            throw Error('会话通道尚未开启');
-	        }
+	        // if(!this.sessionOpen){
+	        // 	throw Error('会话通道尚未开启'); // sendText不用start @景奕
+	        // }
 	        const msg = {
 	            type: "dataSend",
 	            sessionId: this.sessionId,
@@ -716,8 +727,10 @@
 	// // this.socket.onerror = (e) => {
 	// // 	throw(e); // CHECK
 	// // }
-	// @ts-ignore
-	window.AvatarIM = AvatarIM; // 注册到window方便调试
+	if (window) {
+	    // @ts-ignore
+	    window.AvatarIM = AvatarIM; // 注册到window方便调试
+	}
 
 	return AvatarIM;
 

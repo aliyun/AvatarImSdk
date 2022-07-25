@@ -24,6 +24,7 @@
   "dependencies": {
     "mitt": "^1.2.0"
   },
+  "types": "./types",
   "scripts": {
     "dev": "rollup -c rollup.config.dev.js --watch",
     "build": "rollup -c"

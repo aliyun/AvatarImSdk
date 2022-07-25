@@ -16,7 +16,6 @@ import { getMsgBody, makeMsgBody, generateRandomId, getFullUrl } from './util';
 // client.onstartResult = ()=>{
 
 // }
-
 type StartOptions = {
 	dialogMode?: "cloud" | "aliYunChat"; // 对话模式：open:开放域对话 , aliYunChat 云小蜜对话，默认aliYunChat
 	duplexMode?: "cloud" | "client" | "blend"; // 双工模式：cloud:全云模式（默认），client:全客户端模式，blend：混合模式（端云模式）
@@ -77,14 +76,15 @@ export default class AvatarIM{
 			...mitt()
 		})
 		console.log('constructor')
-		this.sessionReady = new Promise((resolve,reject)=>{
-			this.on(MESSAGE,(msg)=>{
-				if(msg.content.type === 'startResult'){
-					this.sessionOpen = true;
-					resolve(msg);
-				}
-			})
-		})
+		// this.sessionReady = new Promise((resolve,reject)=>{
+		// 	this.on(MESSAGE,(msg)=>{
+		// 		if(msg.content.type === 'startResult'){
+		// 			this.sessionOpen = true;
+		// 			resolve(msg);
+		// 		}
+		// 	})
+		// })
+		this.sessionReady = new Promise(()=>{});
     this._reconnect = getReconnect(this);
 		this.connect(); // 初始化时建立连接
 	}
@@ -127,6 +127,17 @@ export default class AvatarIM{
 		startOptions && Object.keys(startOptions).forEach((key) => {
 			msg[key] = startOptions![key] || startDefaultOptions[key];
 		})
+
+		// 刷新promise
+		this.sessionReady = new Promise((resolve,reject)=>{
+			this.on(MESSAGE,(msg)=>{
+				if(msg.content.type === 'startResult'){
+					this.sessionOpen = true;
+					resolve(msg);
+				}
+			})
+		})
+
 		this.sendMessage(msg);
 	}
 
@@ -164,6 +175,7 @@ export default class AvatarIM{
 		};
 		this.sendMessage(msg);
 		this.sessionOpen = false;
+		this.sessionReady = new Promise(()=>{}); // 重制sessionReady为空
 	}
 
 	public refreshContext(options){
@@ -179,9 +191,9 @@ export default class AvatarIM{
 	}
 
 	public sendText(text:string,duplexCommand={}){
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
+		// if(!this.sessionOpen){
+		// 	throw Error('会话通道尚未开启'); // sendText不用start @景奕
+		// }
 		const msg = {
 			type: "dataSend",
 			sessionId: this.sessionId,
@@ -501,5 +513,8 @@ export default class AvatarIM{
 // // 	throw(e); // CHECK
 // // }
 
-// @ts-ignore
-window.AvatarIM = AvatarIM; // 注册到window方便调试
+
+if(window){
+	// @ts-ignore
+	window.AvatarIM = AvatarIM; // 注册到window方便调试
+}
