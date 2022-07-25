@@ -7,11 +7,12 @@
         "tnpm run build",
 
         "mkdir -p $BUILD_DEST/dist",
+        "mkdir -p $BUILD_DEST/types",
         "cp -r ./build/* $BUILD_DEST/dist",
 
         "mv ./build/* $BUILD_DEST/",
         "mv ./package.json $BUILD_DEST/",
-        "mv ./types/* $BUILD_DEST/"
+        "mv ./types/* $BUILD_DEST/types"
       ]
     }
   }
