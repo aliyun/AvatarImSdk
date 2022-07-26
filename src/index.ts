@@ -23,10 +23,6 @@ type StartOptions = {
 	videoOpen?: "0" | "1"; // 是否视频开启 0：未开启，默认 1：开启
 	format?: string; // 音频格式，可不传，不传默认 pcm
 	sampleRate?: string; // 音频采样率，可不传，不传默认 16K
-	emotion?: string; // 情感标签 可选，为了可以指定发音人情感
-	voice?: string; // 发音人名称 可选，为了能指定发音人
-	characterCode?: string; // 人物code
-	extInfo? : string; // 扩展信息，json格式，暂时未使用，为后续新增参数预览
 } | {}
 
 // type openMsg = {
