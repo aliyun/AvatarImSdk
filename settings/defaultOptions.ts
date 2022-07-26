@@ -5,10 +5,6 @@ export const startDefaultOptions = {
 	videoOpen: "0", // 是否视频开启 0：未开启，默认 1：开启
 	format: "pcm", // 音频格式，可不传，不传默认 pcm
 	sampleRate: "16000", // 音频采样率，可不传，不传默认 16K
-	emotion: "", // 情感标签 可选，为了可以指定发音人情感
-	voice: "zhizhe_emo", // 发音人名称 可选，为了能指定发音人
-	characterCode : "CH_I6EenVkg9I4eXnJo", // 人物code
-	extInfo : "" // 扩展信息，json格式，暂时未使用，为后续新增参数预览
 }
 
 export const wsDefaultOptions = {
