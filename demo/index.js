@@ -313,7 +313,7 @@
 	 * 拼接完整url
 	 */
 	function getFullUrl(url, token, appKey, tenant) {
-	    return `${url}?t=${token}&app=${appKey}&tenant=${tenant}&security=false`;
+	    return `${url}?t=${token}&app=${appKey}&tenant=${tenant}`;
 	}
 
 	class AvatarIM {
