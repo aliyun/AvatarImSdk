@@ -30,7 +30,7 @@
     "build": "rollup -c"
   },
   "publishConfig": {
-    "registry": "https://registry.antfin-inc.com"
+    "registry": "https://registry.npm.alibaba-inc.com"
   },
   "keywords": [],
   "author": "",
