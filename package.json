@@ -1,6 +1,6 @@
 {
   "name": "@alife/avatar-im-sdk",
-  "version": "0.0.2",
+  "version": "0.0.2-beta.1",
   "description": "",
   "main": "index.js",
   "devDependencies": {
