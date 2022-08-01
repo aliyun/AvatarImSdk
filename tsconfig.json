@@ -5,8 +5,9 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "target": "ESNext",
+    "outDir": "lib",
     "declaration": true,
-    "declarationDir": "./build/types",
+    "declarationDir": "lib",
     "allowSyntheticDefaultImports": true,
     "noEmitOnError": false
   },

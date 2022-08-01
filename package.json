@@ -2,7 +2,9 @@
   "name": "@alife/avatar-im-sdk",
   "version": "0.0.2",
   "description": "",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "module": "es/index.js",
+  "unpkg": "dist/index.min.js",
   "devDependencies": {
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
@@ -16,6 +18,7 @@
     "prettier": "1.15.3",
     "pretty-quick": "1.8.0",
     "rollup": "^2.77.0",
+    "rollup-plugin-terser": "^7.0.2",
     "rollup-plugin-typescript2": "^0.32.1",
     "tslib": "^2.4.0",
     "typedoc": "^0.15.4",
@@ -24,15 +27,15 @@
   "dependencies": {
     "mitt": "^1.2.0"
   },
-  "types": "./types",
+  "types": "lib",
   "scripts": {
     "dev": "rollup -c rollup.config.dev.js --watch",
-    "build": "rollup -c"
+    "build": "tsc --module commonjs && rollup -c rollup.config.js"
   },
   "publishConfig": {
     "registry": "https://registry.npm.alibaba-inc.com"
   },
   "keywords": [],
-  "author": "",
+  "author": "guling.hhh",
   "license": "ISC"
 }
