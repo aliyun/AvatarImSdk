@@ -9,14 +9,8 @@ import pkg from './package.json';
 
 const config = [
   {
-    input: 'src/index.ts',
+    input: 'index.ts',
     output: [
-      {
-        name: 'avatar-im',
-        file: pkg.main,
-        format: 'umd',
-        sourcemap: true
-      },
       {
         file: pkg.module,
         format: 'es',

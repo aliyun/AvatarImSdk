@@ -9,7 +9,7 @@ import typescript from 'rollup-plugin-typescript2';
 
 const config = [
   {
-    input: 'src/index.ts',
+    input: 'index.ts',
     output: [
       {
         file: 'demo/index.js',
