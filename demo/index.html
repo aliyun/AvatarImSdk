@@ -13,9 +13,7 @@
 	<button id="startRecording">开始录音</button>
 	<button id="stopRecording">停止录音</button>
 	<script src="./index.js"></script>
-	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 	<script src="https://dev.g.alicdn.com/liveme-console/media-to-data/0.0.2/app.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 	<script>
 		const client = new AvatarIM({
 			url:'wss://pre-avatar-im.console.aliyun.com/ws',
@@ -49,7 +47,6 @@
 				const [format,base64] = audio.data.split(',');
 				client.sessionReady.then(()=>{
 					client.sendAudio({
-						format:'wav',
 						base64,
 					});
 				});
@@ -64,7 +61,7 @@
 		});
 
 		document.getElementById('startSession').addEventListener('click',() => {
-			client.start({dialogMode:"open"});
+			client.startSession({dialogMode:"open",format:"wav"});
 		});
 
 		document.getElementById('stopSession').addEventListener('click',() => {

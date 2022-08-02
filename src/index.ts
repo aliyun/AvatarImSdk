@@ -1,6 +1,6 @@
 import mitt from 'mitt';
 
-import { startDefaultOptions,wsDefaultOptions } from '../settings/defaultOptions'
+import { startDefaultOptions,wsDefaultOptions,wsDefaultUrl } from '../settings/defaultOptions'
 import { KEEPALIVE_INTERVAL } from '../settings/params'
 import { OPEN, MESSAGE, ACK, ERROR, CLOSE, CONNECT, EVENT } from './const';
 import Socket from './socket';
@@ -34,13 +34,17 @@ type StartOptions = {
 // }
 
 type AvatarIMInput = {
-	url: string; // wss url
+	url?: string; // wss url
 	token: string;
 	appKey: string;
 	tenant: string;
 	sessionId: string;
 	// startOptions?: StartOptions; // 会话开始参数，不传全部取默认值
-	onMessageCallback: Function // 处理消息的回调
+	onMessageCallback?: Function // 处理消息的回调
+}
+
+type sendAudioParam = {
+	base64: string
 }
 
 export default class AvatarIM{
@@ -60,9 +64,9 @@ export default class AvatarIM{
   protected _pongInterval: any;
 
 	private sessionOpen: boolean = false; // 会话是否开启
-	
 
 	constructor({url,token, appKey, tenant, sessionId, onMessageCallback}:AvatarIMInput){
+		url = url || wsDefaultUrl;
 		const fullUrl = getFullUrl(url,token, appKey, tenant);
 		Object.assign(this,{ // 用户输入注册到this
 			sessionId,
@@ -70,8 +74,7 @@ export default class AvatarIM{
 			appKey,
 			onMessageCallback,
 			...mitt()
-		})
-		console.log('constructor')
+		});
 		// this.sessionReady = new Promise((resolve,reject)=>{
 		// 	this.on(MESSAGE,(msg)=>{
 		// 		if(msg.content.type === 'startResult'){
@@ -113,15 +116,15 @@ export default class AvatarIM{
 		this.im.close();
 	}
 
-	public start(startOptions:StartOptions){
+	public startSession(options:StartOptions){
 		/**会话开始接口 */
 		const msg = {
 			type:"start",
 			sessionId:this.sessionId,
 			...startDefaultOptions
 		};
-		startOptions && Object.keys(startOptions).forEach((key) => {
-			msg[key] = startOptions![key] || startDefaultOptions[key];
+		options && Object.keys(options).forEach((key) => { // TODOS
+			msg[key] = options![key] || startDefaultOptions[key];
 		})
 
 		// 刷新promise
@@ -161,7 +164,7 @@ export default class AvatarIM{
 	// 	this.sendMessage(msg);
 	// }
 
-	public stop(){
+	public stopSession(){
 		if(!this.sessionOpen){
 			throw Error('会话通道尚未开启');
 		}
@@ -187,9 +190,9 @@ export default class AvatarIM{
 	}
 
 	public sendText(text:string,duplexCommand={}){
-		// if(!this.sessionOpen){
-		// 	throw Error('会话通道尚未开启'); // sendText不用start @景奕
-		// }
+		if(!this.sessionOpen){
+			throw Error('会话通道尚未开启');
+		}
 		const msg = {
 			type: "dataSend",
 			sessionId: this.sessionId,
@@ -199,20 +202,14 @@ export default class AvatarIM{
 		this.sendMessage(msg);
 	}
 
-	public sendAudio(
-		{
-			format,
-			base64,
-		}
-	){
+	public sendAudio({base64}: sendAudioParam){
 		if(!this.sessionOpen){
 			throw Error('会话通道尚未开启');
 		}
 		const msg = {
 			type:"dataSend",
 			sessionId:this.sessionId,
-			audio:base64,
-			format
+			audio:base64
 			// duplexCommand: duplexCommand||undefined
 		};
 		this.sendMessage(msg);
@@ -228,6 +225,42 @@ export default class AvatarIM{
 			sentenceId,
 			status
 		}
+	}
+
+	/**
+   * 发送消息
+   * @param {Object} data
+   */
+	public send(data: string): void {
+		this.im.send(data);
+	}
+
+	/**
+   * 发送包装好的message
+   */
+	public sendMessage(content: object): string {
+		const messageId = `msg_${generateRandomId()}`
+		const params = {
+			messageId,
+			...wsDefaultOptions,
+			receiverAppId: this.appKey,
+			content
+		}
+		if (this.getReadyState() === 1) {
+			// 加上协议码
+			const msg = makeMsgBody(5, params);
+			this.send(msg);
+		} else {
+			// 消息待重连后重发
+			actionQueue.push(() => {
+				this.sendMessage(content);
+			});
+			// 非连接中状态都重连
+			if (this.getReadyState() !== 0) {
+				this._reconnect.exec('POSTMESSAGE');
+			}
+		}
+		return messageId
 	}
 	
 	// public connectReady(){
@@ -253,44 +286,11 @@ export default class AvatarIM{
     return typeof im.readyState === 'number' ? im.readyState : 3;
   }
 
-	/**
-   * 发送消息
-   * @param {Object} data
-   */
-	private _send(data: string): void {
-		this.im.send(data);
-	}
-	
-  /**
-   * 发送消息
-   */
-  private sendMessage(content: object): void {
-		const params = {
-			messageId: `msg_${generateRandomId()}`,
-			...wsDefaultOptions,
-			receiverAppId: this.appKey,
-			content
-		}
-    if (this.getReadyState() === 1) {
-      // 加上协议码
-      const msg = makeMsgBody(5, params);
-      this._send(msg);
-    } else {
-      // 消息待重连后重发
-      actionQueue.push(() => {
-        this.sendMessage(content);
-      });
-      // 非连接中状态都重连
-      if (this.getReadyState() !== 0) {
-        this._reconnect.exec('POSTMESSAGE');
-      }
-    }
-  }
   /**
    * 发送ping消息
    */
   private ping(): void {
-    this._send('3');
+    this.send('3');
   }
 
 	private _pong(): any {
@@ -311,7 +311,7 @@ export default class AvatarIM{
    * @param {Object} data
    */
   // sendEvent(data: any): void {
-  //   this._send(makeMsgBody(7, data));
+  //   this.send(makeMsgBody(7, data));
   // }
 
 
@@ -336,7 +336,7 @@ export default class AvatarIM{
   // 端上保持心跳
   private _keepAlive(): number {
     return window.setInterval(() => {
-      this._send('3');
+      this.send('3');
     }, KEEPALIVE_INTERVAL);
   }
 
@@ -345,7 +345,7 @@ export default class AvatarIM{
     const ackMsg = {
       messageId,
     };
-    this._send(makeMsgBody(6, ackMsg));
+    this.send(makeMsgBody(6, ackMsg));
   }
 
   // 清除定时器
@@ -401,7 +401,7 @@ export default class AvatarIM{
 				case '1':{
 					this.emit(CONNECT);
 					// 建联成功发ping
-					this._send('3');
+					this.send('3');
 					break;
 				}
 
@@ -466,7 +466,7 @@ export default class AvatarIM{
 					this.emit(MESSAGE, msg);
 					// this._ack(messageId); // 不需要返回ack @景奕
 					msgQueue.push(messageId);
-					this.onMessageCallback(msg);
+					this.onMessageCallback?.(msg);
 					this._preMessageTime = new Date().getTime();
 					break;
 				}
@@ -501,14 +501,6 @@ export default class AvatarIM{
   }
 
 }
-
-// // this.socket.onmessage = (event) => {
-// // 	onMessageCallback(event); // 交由用户自行处理
-// // }
-// // this.socket.onerror = (e) => {
-// // 	throw(e); // CHECK
-// // }
-
 
 if(window){
 	// @ts-ignore

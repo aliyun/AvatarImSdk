@@ -1,0 +1,5 @@
+# 0.0.5 更新
+start改为startSession
+stop改为stopSession
+sendText需要在sessionReady之后
+format不再随着base64发出

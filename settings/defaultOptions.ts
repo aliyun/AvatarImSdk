@@ -13,6 +13,7 @@ export const wsDefaultOptions = {
 	sticky: true
 }
 
+export const wsDefaultUrl = 'wss://avatar-im.console.aliyun.com/ws'
 // interface onResult {
 // 	(func:Function):void;
 // }
