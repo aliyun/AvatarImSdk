@@ -1,8 +1,8 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-	typeof define === 'function' && define.amd ? define(factory) :
-	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, global["avatar-im"] = factory());
-})(this, (function () { 'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+	typeof define === 'function' && define.amd ? define(['exports'], factory) :
+	(global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global["avatar-im"] = {}));
+})(this, (function (exports) { 'use strict';
 
 	//      
 	// An event handler can take an optional event argument
@@ -66,23 +66,12 @@
 		};
 	}
 
-	const startDefaultOptions = {
-	    dialogMode: "aliYunChat",
-	    duplexMode: "cloud",
-	    outputMode: "video",
-	    videoOpen: "0",
-	    format: "pcm",
-	    sampleRate: "16000",
-	    emotion: "",
-	    voice: "zhizhe_emo",
-	    characterCode: "CH_I6EenVkg9I4eXnJo",
-	    extInfo: "" // 扩展信息，json格式，暂时未使用，为后续新增参数预览
-	};
 	const wsDefaultOptions = {
 	    receiverId: "ability",
 	    receiverType: "server",
 	    sticky: true
 	};
+	const wsDefaultUrl = 'wss://avatar-im.console.aliyun.com/ws';
 	// interface onResult {
 	// 	(func:Function):void;
 	// }
@@ -316,7 +305,7 @@
 	    return `${url}?t=${token}&app=${appKey}&tenant=${tenant}`;
 	}
 
-	class AvatarIM {
+	class BaseIM {
 	    url; // 含鉴权信息等的完整url
 	    appKey;
 	    sessionId; // sessionId
@@ -324,14 +313,13 @@
 	    onMessageCallback; // 处理消息的回调
 	    emit; // from mitt
 	    on; // from mitt
-	    im; // Socket实例
-	    sessionReady;
 	    _reconnect;
 	    _preMessageTime;
 	    _pingInterval;
 	    _pongInterval;
-	    sessionOpen = false; // 会话是否开启
+	    im; // Socket实例
 	    constructor({ url, token, appKey, tenant, sessionId, onMessageCallback }) {
+	        url = url || wsDefaultUrl;
 	        const fullUrl = getFullUrl(url, token, appKey, tenant);
 	        Object.assign(this, {
 	            sessionId,
@@ -340,21 +328,11 @@
 	            onMessageCallback,
 	            ...mitt()
 	        });
-	        console.log('constructor');
-	        // this.sessionReady = new Promise((resolve,reject)=>{
-	        // 	this.on(MESSAGE,(msg)=>{
-	        // 		if(msg.content.type === 'startResult'){
-	        // 			this.sessionOpen = true;
-	        // 			resolve(msg);
-	        // 		}
-	        // 	})
-	        // })
-	        this.sessionReady = new Promise(() => { });
 	        this._reconnect = getReconnect(this);
 	        this.connect(); // 初始化时建立连接
 	    }
 	    connect() {
-	        console.log('-----connect');
+	        console.log('-----IM connect');
 	        /**尝试建立连接*/
 	        try {
 	            const im = new Socket(this.url);
@@ -380,117 +358,41 @@
 	        this._clearInterval();
 	        this.im.close();
 	    }
-	    start(startOptions) {
-	        /**会话开始接口 */
-	        const msg = {
-	            type: "start",
-	            sessionId: this.sessionId,
-	            ...startDefaultOptions
+	    /**
+	   * 发送消息
+	   * @param {Object} data
+	   */
+	    send(data) {
+	        this.im.send(data);
+	    }
+	    /**
+	   * 发送包装好的message
+	   */
+	    sendMessage(content) {
+	        const messageId = `msg_${generateRandomId()}`;
+	        const params = {
+	            messageId,
+	            ...wsDefaultOptions,
+	            receiverAppId: this.appKey,
+	            content
 	        };
-	        startOptions && Object.keys(startOptions).forEach((key) => {
-	            msg[key] = startOptions[key] || startDefaultOptions[key];
-	        });
-	        // 刷新promise
-	        this.sessionReady = new Promise((resolve, reject) => {
-	            this.on(MESSAGE, (msg) => {
-	                if (msg.content.type === 'startResult') {
-	                    this.sessionOpen = true;
-	                    resolve(msg);
-	                }
+	        if (this.getReadyState() === 1) {
+	            // 加上协议码
+	            const msg = makeMsgBody(5, params);
+	            this.send(msg);
+	        }
+	        else {
+	            // 消息待重连后重发
+	            actionQueue.push(() => {
+	                this.sendMessage(content);
 	            });
-	        });
-	        this.sendMessage(msg);
-	    }
-	    // public suspend(){
-	    // 	/**会话开始暂停 */
-	    // 	if(!this.sessionOpen){
-	    // 		throw Error('会话通道尚未开启');
-	    // 	}
-	    // 	const msg = {
-	    // 		type:"suspend",
-	    // 		sessionId:this.sessionId
-	    // 	};
-	    // 	this.sendMessage(msg);
-	    // }
-	    // public recover(){
-	    // 	if(!this.sessionOpen){
-	    // 		throw Error('会话通道尚未开启');
-	    // 	}
-	    // 	const msg = {
-	    // 		type:"recover",
-	    // 		sessionId:this.sessionId
-	    // 	};
-	    // 	this.sendMessage(msg);
-	    // }
-	    stop() {
-	        if (!this.sessionOpen) {
-	            throw Error('会话通道尚未开启');
+	            // 非连接中状态都重连
+	            if (this.getReadyState() !== 0) {
+	                this._reconnect.exec('POSTMESSAGE');
+	            }
 	        }
-	        const msg = {
-	            type: "stop",
-	            sessionId: this.sessionId
-	        };
-	        this.sendMessage(msg);
-	        this.sessionOpen = false;
-	        this.sessionReady = new Promise(() => { }); // 重制sessionReady为空
+	        return messageId;
 	    }
-	    refreshContext(options) {
-	        if (!this.sessionOpen) {
-	            throw Error('会话通道尚未开启');
-	        }
-	        const msg = {
-	            type: "refreshContext",
-	            sessionId: this.sessionId,
-	            ...options
-	        };
-	        this.sendMessage(msg);
-	    }
-	    sendText(text, duplexCommand = {}) {
-	        // if(!this.sessionOpen){
-	        // 	throw Error('会话通道尚未开启'); // sendText不用start @景奕
-	        // }
-	        const msg = {
-	            type: "dataSend",
-	            sessionId: this.sessionId,
-	            text,
-	            // duplexCommand: duplexCommand||undefined
-	        };
-	        this.sendMessage(msg);
-	    }
-	    sendAudio({ format, base64, }) {
-	        if (!this.sessionOpen) {
-	            throw Error('会话通道尚未开启');
-	        }
-	        const msg = {
-	            type: "dataSend",
-	            sessionId: this.sessionId,
-	            audio: base64,
-	            format
-	            // duplexCommand: duplexCommand||undefined
-	        };
-	        this.sendMessage(msg);
-	    }
-	    broadcastStatus(sentenceId, status) {
-	        if (!this.sessionOpen) {
-	            throw Error('会话通道尚未开启');
-	        }
-	        ({
-	            type: "broadcastStatus",
-	            sessionId: this.sessionId,
-	            sentenceId,
-	            status
-	        });
-	    }
-	    // public connectReady(){
-	    // 	return new Promise((resolve,reject) => {
-	    // 	})
-	    // }
-	    // public sessionReady(){
-	    // 	/**
-	    // 	 * 会话开始
-	    // 	 */
-	    // 	return 
-	    // }
 	    /**
 	   * 参考 ws.readyState
 	   * CONNECTING：值为0，表示正在连接。
@@ -503,43 +405,10 @@
 	        return typeof im.readyState === 'number' ? im.readyState : 3;
 	    }
 	    /**
-	   * 发送消息
-	   * @param {Object} data
-	   */
-	    _send(data) {
-	        this.im.send(data);
-	    }
-	    /**
-	     * 发送消息
-	     */
-	    sendMessage(content) {
-	        const params = {
-	            messageId: `msg_${generateRandomId()}`,
-	            ...wsDefaultOptions,
-	            receiverAppId: this.appKey,
-	            content
-	        };
-	        if (this.getReadyState() === 1) {
-	            // 加上协议码
-	            const msg = makeMsgBody(5, params);
-	            this._send(msg);
-	        }
-	        else {
-	            // 消息待重连后重发
-	            actionQueue.push(() => {
-	                this.sendMessage(content);
-	            });
-	            // 非连接中状态都重连
-	            if (this.getReadyState() !== 0) {
-	                this._reconnect.exec('POSTMESSAGE');
-	            }
-	        }
-	    }
-	    /**
 	     * 发送ping消息
 	     */
 	    ping() {
-	        this._send('3');
+	        this.send('3');
 	    }
 	    _pong() {
 	        return setInterval(() => {
@@ -556,37 +425,37 @@
 	     * @param {Object} data
 	     */
 	    // sendEvent(data: any): void {
-	    //   this._send(makeMsgBody(7, data));
+	    //   this.send(makeMsgBody(7, data));
 	    // }
 	    /**
 	     * 重新建立im连接
 	     *
 	     * @param code 重连原因
 	     */
-	    reconnect(code) {
-	        this._reconnect.exec(code);
-	    }
-	    /**
-	     * 模拟心跳超时消息
-	     * 用于前端检测断线
-	     */
-	    _mockHeartbeatTimeout() {
-	        // 心跳超时直接重连，不需要在主仓库里写逻辑
-	        this._reconnect.exec('HEARTBEAT_TIMEOUT');
-	    }
+	    //  private reconnect(code: string): void {
+	    //   this._reconnect.exec(code);
+	    // }
+	    // /**
+	    //  * 模拟心跳超时消息
+	    //  * 用于前端检测断线
+	    //  */
+	    //  private _mockHeartbeatTimeout(): void {
+	    //   // 心跳超时直接重连，不需要在主仓库里写逻辑
+	    //   this._reconnect.exec('HEARTBEAT_TIMEOUT');
+	    // }
 	    // 端上保持心跳
 	    _keepAlive() {
 	        return window.setInterval(() => {
-	            this._send('3');
+	            this.send('3');
 	        }, KEEPALIVE_INTERVAL);
 	    }
 	    // 收到后端业务消息的ack
-	    _ack(messageId) {
-	        const ackMsg = {
-	            messageId,
-	        };
-	        this._send(makeMsgBody(6, ackMsg));
-	    }
+	    // private _ack(messageId: string): void {
+	    // 	const ackMsg = {
+	    // 		messageId,
+	    // 	};
+	    // 	this.send(makeMsgBody(6, ackMsg));
+	    // }
 	    // 清除定时器
 	    _clearInterval() {
 	        if (this._pingInterval) {
@@ -623,8 +492,7 @@
 	         * @param {*} data
 	         */
 	        const onMessage = (data) => {
-	            // debugger;
-	            console.log('onMessage-----', data);
+	            // console.log('onMessage-----',data);
 	            const packetTypeId = data[0];
 	            switch (packetTypeId) {
 	                /**
@@ -633,7 +501,7 @@
 	                case '1': {
 	                    this.emit(CONNECT);
 	                    // 建联成功发ping
-	                    this._send('3');
+	                    this.send('3');
 	                    break;
 	                }
 	                /**
@@ -691,7 +559,7 @@
 	                    this.emit(MESSAGE, msg);
 	                    // this._ack(messageId); // 不需要返回ack @景奕
 	                    msgQueue.push(messageId);
-	                    this.onMessageCallback(msg);
+	                    this.onMessageCallback?.(msg);
 	                    this._preMessageTime = new Date().getTime();
 	                    break;
 	                }
@@ -721,18 +589,114 @@
 	        im.on(CLOSE, onClose);
 	    }
 	}
-	// // this.socket.onmessage = (event) => {
-	// // 	onMessageCallback(event); // 交由用户自行处理
-	// // }
-	// // this.socket.onerror = (e) => {
-	// // 	throw(e); // CHECK
-	// // }
-	if (window) {
-	    // @ts-ignore
-	    window.AvatarIM = AvatarIM; // 注册到window方便调试
+
+	const startDefaultOptions = {
+	    dialogMode: "aliYunChat",
+	    duplexMode: "cloud",
+	    outputMode: "video",
+	    videoOpen: "0",
+	    format: "pcm",
+	    sampleRate: "16000", // 音频采样率，可不传，不传默认 16K
+	};
+
+	class AvatarChatIM extends BaseIM {
+	    sessionReady;
+	    sessionOpen = false; // 内部判断会话是否开启
+	    constructor(options) {
+	        super(options);
+	    }
+	    startSession(options) {
+	        /**会话开始接口 */
+	        const msg = {
+	            type: "start",
+	            sessionId: this.sessionId,
+	            ...startDefaultOptions
+	        };
+	        options && Object.keys(options).forEach((key) => {
+	            msg[key] = options[key] || startDefaultOptions[key];
+	        });
+	        // 刷新promise
+	        this.sessionReady = new Promise((resolve, reject) => {
+	            this.on(MESSAGE, (msg) => {
+	                if (msg.content.type === 'startResult') {
+	                    this.sessionOpen = true;
+	                    resolve(msg);
+	                }
+	            });
+	        });
+	        this.sendMessage(msg);
+	    }
+	    stopSession() {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
+	        const msg = {
+	            type: "stop",
+	            sessionId: this.sessionId
+	        };
+	        this.sendMessage(msg);
+	        this.sessionOpen = false;
+	        this.sessionReady = new Promise(() => { }); // 重制sessionReady为空
+	    }
+	    refreshContext(options) {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
+	        const msg = {
+	            type: "refreshContext",
+	            sessionId: this.sessionId,
+	            ...options
+	        };
+	        this.sendMessage(msg);
+	    }
+	    sendText(text, duplexCommand = {}) {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
+	        const msg = {
+	            type: "dataSend",
+	            sessionId: this.sessionId,
+	            text,
+	            // duplexCommand: duplexCommand||undefined
+	        };
+	        this.sendMessage(msg);
+	    }
+	    sendAudio({ base64 }) {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
+	        const msg = {
+	            type: "dataSend",
+	            sessionId: this.sessionId,
+	            audio: base64
+	            // duplexCommand: duplexCommand||undefined
+	        };
+	        this.sendMessage(msg);
+	    }
+	    broadcastStatus(sentenceId, status) {
+	        if (!this.sessionOpen) {
+	            throw Error('会话通道尚未开启');
+	        }
+	        ({
+	            type: "broadcastStatus",
+	            sessionId: this.sessionId,
+	            sentenceId,
+	            status
+	        });
+	    }
 	}
 
-	return AvatarIM;
+	if (globalThis.constructor.name === 'Window') {
+	    //@ts-ignore
+	    window.AvatarIM = AvatarChatIM; // 注册到window上
+	    // Object.defineProperty(globalThis,'AvatarIM',AvatarChatIM); 
+	}
+
+	exports.AvatarChatIM = AvatarChatIM;
+	exports.BaseIM = BaseIM;
+	exports["default"] = AvatarChatIM;
+
+	Object.defineProperty(exports, '__esModule', { value: true });
 
 }));
 //# sourceMappingURL=index.js.map

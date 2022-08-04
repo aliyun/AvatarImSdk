@@ -1,5 +1,5 @@
 import { CLOSE, RECONNECT } from './const';
-import AvatarIM  from './index'
+import {BaseIM}  from './index'
 export interface IReconnect {
   exec: (code: string, err?: any) => void;
   success: () => void;
@@ -10,8 +10,8 @@ export class Reconnect implements IReconnect {
   private _isReconnect: boolean; // 重连状态，防止重复连接
   private _startTime: Date;
   private _counter: number;
-  private im: AvatarIM;
-  constructor(im:AvatarIM) {
+  private im: BaseIM;
+  constructor(im:BaseIM) {
     /**
      * @param im Socket实例
      */
@@ -97,7 +97,7 @@ export class Reconnect implements IReconnect {
   }
 }
 
-export default function (im : AvatarIM) : Reconnect {
+export default function (im : BaseIM) : Reconnect {
   // const { getToken } = im.options;
   return new Reconnect(im);
 }

@@ -1,6 +1,6 @@
-import mitt from 'mitt';
+import mitt,{Emitter} from 'mitt';
 
-import { startDefaultOptions,wsDefaultOptions,wsDefaultUrl } from '../settings/defaultOptions'
+import { wsDefaultOptions,wsDefaultUrl } from '../settings/defaultOptions'
 import { KEEPALIVE_INTERVAL } from '../settings/params'
 import { OPEN, MESSAGE, ACK, ERROR, CLOSE, CONNECT, EVENT } from './const';
 import Socket from './socket';
@@ -8,32 +8,14 @@ import actionQueue from './actionqueue';
 import msgQueue from './msgqueue';
 import getReconnect, {Reconnect} from './reconnect';
 import { getMsgBody, makeMsgBody, generateRandomId, getFullUrl } from './util';
+interface IM {
+	connect():void;
+	close():void;
+	send(data:string):void;
+	sendMessage(content:object):string;
+}
 
-// const wsServer="";
-
-// options.onstartResult;
-
-// client.onstartResult = ()=>{
-
-// }
-type StartOptions = {
-	dialogMode?: "cloud" | "aliYunChat"; // 对话模式：open:开放域对话 , aliYunChat 云小蜜对话，默认aliYunChat
-	duplexMode?: "cloud" | "client" | "blend"; // 双工模式：cloud:全云模式（默认），client:全客户端模式，blend：混合模式（端云模式）
-	outputMode?: "video" | "audio"; // 输出模式：video:视频(全云的视频输出需要先startWork去启动pod)，默认 ,audio:音频
-	videoOpen?: "0" | "1"; // 是否视频开启 0：未开启，默认 1：开启
-	format?: string; // 音频格式，可不传，不传默认 pcm
-	sampleRate?: string; // 音频采样率，可不传，不传默认 16K
-} | {}
-
-// type openMsg = {
-// 	type : string,
-// 	sessionId : string
-// } & options
-// interface onResult {
-// 	(func:Function):void;
-// }
-
-type AvatarIMInput = {
+type IMInput = {
 	url?: string; // wss url
 	token: string;
 	appKey: string;
@@ -42,30 +24,22 @@ type AvatarIMInput = {
 	// startOptions?: StartOptions; // 会话开始参数，不传全部取默认值
 	onMessageCallback?: Function // 处理消息的回调
 }
-
-type sendAudioParam = {
-	base64: string
-}
-
-export default class AvatarIM{
+class BaseIM implements IM {
 	public url: string; // 含鉴权信息等的完整url
 	public appKey: string;
 	public sessionId : string; // sessionId
 	// public startOptions?: StartOptions // 用户输入options，不传全部取默认值
 	public onMessageCallback: Function // 处理消息的回调
-	public emit: any; // from mitt
-  public on: any; // from mitt
-	public im: Socket; // Socket实例
-	public sessionReady: Promise<any>;
+	public emit: Emitter["emit"]; // from mitt
+  public on: Emitter["on"]; // from mitt
 
 	protected _reconnect: Reconnect;
 	protected _preMessageTime: number;
   protected _pingInterval: any;
   protected _pongInterval: any;
+	protected im: Socket; // Socket实例
 
-	private sessionOpen: boolean = false; // 会话是否开启
-
-	constructor({url,token, appKey, tenant, sessionId, onMessageCallback}:AvatarIMInput){
+	constructor({url,token, appKey, tenant, sessionId, onMessageCallback}:IMInput){
 		url = url || wsDefaultUrl;
 		const fullUrl = getFullUrl(url,token, appKey, tenant);
 		Object.assign(this,{ // 用户输入注册到this
@@ -75,21 +49,13 @@ export default class AvatarIM{
 			onMessageCallback,
 			...mitt()
 		});
-		// this.sessionReady = new Promise((resolve,reject)=>{
-		// 	this.on(MESSAGE,(msg)=>{
-		// 		if(msg.content.type === 'startResult'){
-		// 			this.sessionOpen = true;
-		// 			resolve(msg);
-		// 		}
-		// 	})
-		// })
-		this.sessionReady = new Promise(()=>{});
+	
     this._reconnect = getReconnect(this);
 		this.connect(); // 初始化时建立连接
 	}
 
 	public connect(){
-		console.log('-----connect')
+		console.log('-----IM connect')
 		/**尝试建立连接*/
 		try{
 			const im = new Socket(this.url);
@@ -107,124 +73,13 @@ export default class AvatarIM{
 			this.emit(CLOSE, error);
 		}
 	}
-	
+
 	/**
    * 关闭IM连接
    */
 	public close(): void {
 		this._clearInterval();
 		this.im.close();
-	}
-
-	public startSession(options:StartOptions){
-		/**会话开始接口 */
-		const msg = {
-			type:"start",
-			sessionId:this.sessionId,
-			...startDefaultOptions
-		};
-		options && Object.keys(options).forEach((key) => { // TODOS
-			msg[key] = options![key] || startDefaultOptions[key];
-		})
-
-		// 刷新promise
-		this.sessionReady = new Promise((resolve,reject)=>{
-			this.on(MESSAGE,(msg)=>{
-				if(msg.content.type === 'startResult'){
-					this.sessionOpen = true;
-					resolve(msg);
-				}
-			})
-		})
-
-		this.sendMessage(msg);
-	}
-
-
-	// public suspend(){
-	// 	/**会话开始暂停 */
-	// 	if(!this.sessionOpen){
-	// 		throw Error('会话通道尚未开启');
-	// 	}
-	// 	const msg = {
-	// 		type:"suspend",
-	// 		sessionId:this.sessionId
-	// 	};
-	// 	this.sendMessage(msg);
-	// }
-
-	// public recover(){
-	// 	if(!this.sessionOpen){
-	// 		throw Error('会话通道尚未开启');
-	// 	}
-	// 	const msg = {
-	// 		type:"recover",
-	// 		sessionId:this.sessionId
-	// 	};
-	// 	this.sendMessage(msg);
-	// }
-
-	public stopSession(){
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
-		const msg = {
-			type:"stop",
-			sessionId:this.sessionId
-		};
-		this.sendMessage(msg);
-		this.sessionOpen = false;
-		this.sessionReady = new Promise(()=>{}); // 重制sessionReady为空
-	}
-
-	public refreshContext(options){
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
-		const msg = {
-			type:"refreshContext",
-			sessionId:this.sessionId,
-			...options
-		};
-		this.sendMessage(msg);
-	}
-
-	public sendText(text:string,duplexCommand={}){
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
-		const msg = {
-			type: "dataSend",
-			sessionId: this.sessionId,
-			text,
-			// duplexCommand: duplexCommand||undefined
-		};
-		this.sendMessage(msg);
-	}
-
-	public sendAudio({base64}: sendAudioParam){
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
-		const msg = {
-			type:"dataSend",
-			sessionId:this.sessionId,
-			audio:base64
-			// duplexCommand: duplexCommand||undefined
-		};
-		this.sendMessage(msg);
-	}
-
-	public broadcastStatus(sentenceId:string,status:string){
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
-		const msg = {
-			type:"broadcastStatus",
-			sessionId:this.sessionId,
-			sentenceId,
-			status
-		}
 	}
 
 	/**
@@ -262,18 +117,7 @@ export default class AvatarIM{
 		}
 		return messageId
 	}
-	
-	// public connectReady(){
-	// 	return new Promise((resolve,reject) => {
 
-	// 	})
-	// }
-	// public sessionReady(){
-	// 	/**
-	// 	 * 会话开始
-	// 	 */
-	// 	return 
-	// }
 	/**
    * 参考 ws.readyState
    * CONNECTING：值为0，表示正在连接。
@@ -281,7 +125,7 @@ export default class AvatarIM{
    * CLOSING：值为2，表示连接正在关闭。
    * CLOSED：值为3，表示连接已经关闭，或者打开连接失败。
    */
-  private getReadyState(): number {
+	protected getReadyState(): number {
     const { im } = this;
     return typeof im.readyState === 'number' ? im.readyState : 3;
   }
@@ -289,11 +133,11 @@ export default class AvatarIM{
   /**
    * 发送ping消息
    */
-  private ping(): void {
+	protected ping(): void {
     this.send('3');
   }
 
-	private _pong(): any {
+	protected _pong(): any {
     return setInterval(() => {
       if (
         new Date().getTime() - this._preMessageTime >
@@ -314,42 +158,41 @@ export default class AvatarIM{
   //   this.send(makeMsgBody(7, data));
   // }
 
-
   /**
    * 重新建立im连接
    *
    * @param code 重连原因
    */
-  private reconnect(code: string): void {
-    this._reconnect.exec(code);
-  }
+	//  private reconnect(code: string): void {
+  //   this._reconnect.exec(code);
+  // }
 
-  /**
-   * 模拟心跳超时消息
-   * 用于前端检测断线
-   */
-  private _mockHeartbeatTimeout(): void {
-    // 心跳超时直接重连，不需要在主仓库里写逻辑
-    this._reconnect.exec('HEARTBEAT_TIMEOUT');
-  }
+  // /**
+  //  * 模拟心跳超时消息
+  //  * 用于前端检测断线
+  //  */
+	//  private _mockHeartbeatTimeout(): void {
+  //   // 心跳超时直接重连，不需要在主仓库里写逻辑
+  //   this._reconnect.exec('HEARTBEAT_TIMEOUT');
+  // }
 
-  // 端上保持心跳
-  private _keepAlive(): number {
-    return window.setInterval(() => {
-      this.send('3');
-    }, KEEPALIVE_INTERVAL);
-  }
-
-  // 收到后端业务消息的ack
-  private _ack(messageId: string): void {
-    const ackMsg = {
-      messageId,
-    };
-    this.send(makeMsgBody(6, ackMsg));
-  }
+	// 端上保持心跳
+	protected _keepAlive(): number {
+		return window.setInterval(() => {
+			this.send('3');
+		}, KEEPALIVE_INTERVAL);
+	}
+	
+	// 收到后端业务消息的ack
+	// private _ack(messageId: string): void {
+	// 	const ackMsg = {
+	// 		messageId,
+	// 	};
+	// 	this.send(makeMsgBody(6, ackMsg));
+	// }
 
   // 清除定时器
-  private _clearInterval(): void {
+  protected _clearInterval(): void {
     if (this._pingInterval) {
       clearInterval(this._pingInterval);
     }
@@ -357,8 +200,7 @@ export default class AvatarIM{
       clearTimeout(this._pongInterval);
     }
   }
-	
-	
+
 	private _bindEvt(im: any): void {
 		this.on(MESSAGE,()=>{
 
@@ -391,8 +233,7 @@ export default class AvatarIM{
      * @param {*} data
      */
     const onMessage = (data: any) => {
-			// debugger;
-			console.log('onMessage-----',data);
+			// console.log('onMessage-----',data);
 			const packetTypeId = data[0]
 			switch(packetTypeId){
 				/**
@@ -499,10 +340,6 @@ export default class AvatarIM{
     im.on(ERROR, onError);
     im.on(CLOSE, onClose);
   }
-
 }
 
-if(window){
-	// @ts-ignore
-	window.AvatarIM = AvatarIM; // 注册到window方便调试
-}
+export { BaseIM,IM,IMInput }
