@@ -127,7 +127,7 @@
 	        this.ws.send(data);
 	    }
 	    close() {
-	        console.log('前端触发close');
+	        // console.log('前端触发close');
 	        this.status = 'offline';
 	        this.ws.close();
 	    }
