@@ -5,7 +5,7 @@ import { KEEPALIVE_INTERVAL } from '../settings/params'
 import { OPEN, MESSAGE, ACK, ERROR, CLOSE, CONNECT, EVENT } from './const';
 import Socket from './socket';
 import actionQueue from './actionqueue';
-import msgQueue from './msgqueue';
+import MsgQueue from './msgqueue';
 import getReconnect, {Reconnect} from './reconnect';
 import { getMsgBody, makeMsgBody, generateRandomId, getFullUrl } from './util';
 interface IM {
@@ -22,14 +22,16 @@ type IMInput = {
 	tenant: string;
 	sessionId: string;
 	// startOptions?: StartOptions; // 会话开始参数，不传全部取默认值
-	onMessageCallback?: Function // 处理消息的回调
+	onMessageCallback?: (msg:any) => any // 处理消息的回调
+	onACKErrorCallback?: (err:string) => any // 处理后端返回ack消息失败的回调
 }
 class BaseIM implements IM {
 	public url: string; // 含鉴权信息等的完整url
 	public appKey: string;
 	public sessionId : string; // sessionId
 	// public startOptions?: StartOptions // 用户输入options，不传全部取默认值
-	public onMessageCallback: Function // 处理消息的回调
+	public onMessageCallback?: (msg:any) => any | undefined// 处理消息的回调
+	public onACKErrorCallback?: (err:string) => any | undefined// 
 	public emit: Emitter["emit"]; // from mitt
   public on: Emitter["on"]; // from mitt
 
@@ -39,7 +41,10 @@ class BaseIM implements IM {
   protected _pongInterval: any;
 	protected im: Socket; // Socket实例
 
-	constructor({url,token, appKey, tenant, sessionId, onMessageCallback}:IMInput){
+	protected sendMsgQueue: MsgQueue;
+	protected receiveMsgQueue: MsgQueue;
+
+	constructor({url,token, appKey, tenant, sessionId, onMessageCallback, onACKErrorCallback}:IMInput){
 		url = url || wsDefaultUrl;
 		const fullUrl = getFullUrl(url,token, appKey, tenant);
 		Object.assign(this,{ // 用户输入注册到this
@@ -47,9 +52,12 @@ class BaseIM implements IM {
 			url:fullUrl,
 			appKey,
 			onMessageCallback,
+			onACKErrorCallback,
 			...mitt()
 		});
-	
+		
+		this.sendMsgQueue = new MsgQueue();
+		this.receiveMsgQueue = new MsgQueue();
     this._reconnect = getReconnect(this);
 		this.connect(); // 初始化时建立连接
 	}
@@ -208,7 +216,11 @@ class BaseIM implements IM {
 		this.on(OPEN, ()=>{
 
 		})
-
+		this.on(ACK, (msg)=>{
+			if(msg?.error){
+				this.onACKErrorCallback(msg.error); // 传递错误
+			}
+		})
     const onOpen = () => {
       this._reconnect.success();
       actionQueue.exec();
@@ -301,12 +313,12 @@ class BaseIM implements IM {
 					const msg = getMsgBody(5, data);
 					const messageId = msg.messageId;
 					// 重复的消息
-					if (msgQueue.exist(messageId)) {
+					if (this.receiveMsgQueue.exist(messageId)) {
 						return;
 					}
 					this.emit(MESSAGE, msg);
 					// this._ack(messageId); // 不需要返回ack @景奕
-					msgQueue.push(messageId);
+					this.receiveMsgQueue.push(messageId);
 					this.onMessageCallback?.(msg);
 					this._preMessageTime = new Date().getTime();
 					break;
