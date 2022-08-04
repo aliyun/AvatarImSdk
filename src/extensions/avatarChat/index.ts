@@ -44,7 +44,8 @@ export default class AvatarChatIM extends BaseIM implements IM {
 			})
 		})
 
-		this.sendMessage(msg);
+		const msgId = this.sendMessage(msg);
+		return msgId;
 	}
 
 	public stopSession(){
@@ -55,9 +56,10 @@ export default class AvatarChatIM extends BaseIM implements IM {
 			type:"stop",
 			sessionId:this.sessionId
 		};
-		this.sendMessage(msg);
+		const msgId = this.sendMessage(msg);
 		this.sessionOpen = false;
 		this.sessionReady = new Promise(()=>{}); // 重制sessionReady为空
+		return msgId;
 	}
 
 	public refreshContext(options){
@@ -69,7 +71,8 @@ export default class AvatarChatIM extends BaseIM implements IM {
 			sessionId:this.sessionId,
 			...options
 		};
-		this.sendMessage(msg);
+		const msgId = this.sendMessage(msg);
+		return msgId;
 	}
 
 	public sendText(text:string,duplexCommand={}){
@@ -82,7 +85,8 @@ export default class AvatarChatIM extends BaseIM implements IM {
 			text,
 			// duplexCommand: duplexCommand||undefined
 		};
-		this.sendMessage(msg);
+		const msgId = this.sendMessage(msg);
+		return msgId;
 	}
 
 	public sendAudio({base64}: sendAudioParam){
@@ -95,18 +99,19 @@ export default class AvatarChatIM extends BaseIM implements IM {
 			audio:base64
 			// duplexCommand: duplexCommand||undefined
 		};
-		this.sendMessage(msg);
+		const msgId = this.sendMessage(msg);
+		return msgId;
 	}
 
-	public broadcastStatus(sentenceId:string,status:string){
-		if(!this.sessionOpen){
-			throw Error('会话通道尚未开启');
-		}
-		const msg = {
-			type:"broadcastStatus",
-			sessionId:this.sessionId,
-			sentenceId,
-			status
-		}
-	}
+	// public broadcastStatus(sentenceId:string,status:string){
+	// 	if(!this.sessionOpen){
+	// 		throw Error('会话通道尚未开启');
+	// 	}
+	// 	const msg = {
+	// 		type:"broadcastStatus",
+	// 		sessionId:this.sessionId,
+	// 		sentenceId,
+	// 		status
+	// 	}
+	// }
 }
