@@ -301,13 +301,13 @@
 	/**
 	 * 拼接完整url
 	 */
-	function getFullUrl(url, token, appKey, tenant) {
-	    return `${url}?t=${token}&app=${appKey}&tenant=${tenant}`;
+	function getFullUrl(url, token, appId, tenant) {
+	    return `${url}?t=${token}&app=${appId}&tenant=${tenant}`;
 	}
 
 	class BaseIM {
 	    url; // 含鉴权信息等的完整url
-	    appKey;
+	    appId;
 	    sessionId; // sessionId
 	    // public startOptions?: StartOptions // 用户输入options，不传全部取默认值
 	    onMessageCallback; // 处理消息的回调
@@ -318,13 +318,13 @@
 	    _pingInterval;
 	    _pongInterval;
 	    im; // Socket实例
-	    constructor({ url, token, appKey, tenant, sessionId, onMessageCallback }) {
+	    constructor({ url, token, appId, tenant, sessionId, onMessageCallback }) {
 	        url = url || wsDefaultUrl;
-	        const fullUrl = getFullUrl(url, token, appKey, tenant);
+	        const fullUrl = getFullUrl(url, token, appId, tenant);
 	        Object.assign(this, {
 	            sessionId,
 	            url: fullUrl,
-	            appKey,
+	            appId,
 	            onMessageCallback,
 	            ...mitt()
 	        });
@@ -373,7 +373,7 @@
 	        const params = {
 	            messageId,
 	            ...wsDefaultOptions,
-	            receiverAppId: this.appKey,
+	            receiverAppId: this.appId,
 	            content
 	        };
 	        if (this.getReadyState() === 1) {

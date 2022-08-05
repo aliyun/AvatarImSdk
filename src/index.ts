@@ -17,8 +17,8 @@ interface IM {
 type IMInput = {
 	url?: string; // wss url
 	token: string;
-	appKey: string;
-	tenant: string;
+	appId: string;
+	tenantId: string;
 	sessionId: string;
 	// startOptions?: StartOptions; // 会话开始参数，不传全部取默认值
 	onMessageCallback?: (msg:any) => any // 处理消息的回调
@@ -26,7 +26,7 @@ type IMInput = {
 }
 class BaseIM implements IM {
 	public url: string; // 含鉴权信息等的完整url
-	public appKey: string;
+	public appId: string;
 	public sessionId : string; // sessionId
 	// public startOptions?: StartOptions // 用户输入options，不传全部取默认值
 	public onMessageCallback?: (msg:any) => any | undefined// 处理消息的回调
@@ -43,13 +43,13 @@ class BaseIM implements IM {
 	protected sendMsgQueue: MsgQueue;
 	protected receiveMsgQueue: MsgQueue;
 
-	constructor({url,token, appKey, tenant, sessionId, onMessageCallback, onACKErrorCallback}:IMInput){
+	constructor({url,token, appId, tenantId, sessionId, onMessageCallback, onACKErrorCallback}:IMInput){
 		url = url || wsDefaultUrl;
-		const fullUrl = getFullUrl(url,token, appKey, tenant);
+		const fullUrl = getFullUrl(url,token, appId, tenantId);
 		Object.assign(this,{ // 用户输入注册到this
 			sessionId,
 			url:fullUrl,
-			appKey,
+			appId,
 			onMessageCallback,
 			onACKErrorCallback,
 			...mitt()

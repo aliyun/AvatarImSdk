@@ -26,7 +26,7 @@ export default class AvatarChatIM extends BaseIM implements IM {
 	public sendMessage(content: object): string {
 		const params = {
 			...messageDefaultOptions,
-			receiverAppId: this.appKey,
+			receiverAppId: this.appId,
 			content
 		}
 		const messageId = super.sendMessage(params);
