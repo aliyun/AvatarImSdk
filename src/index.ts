@@ -1,7 +1,6 @@
 import mitt,{Emitter} from 'mitt';
 
-import { wsDefaultOptions,wsDefaultUrl } from '../settings/defaultOptions'
-import { KEEPALIVE_INTERVAL } from '../settings/params'
+import { KEEPALIVE_INTERVAL,wsDefaultUrl } from '../settings'
 import { OPEN, MESSAGE, ACK, ERROR, CLOSE, CONNECT, EVENT } from './const';
 import Socket from './socket';
 import actionQueue from './actionqueue';
@@ -12,7 +11,7 @@ interface IM {
 	connect():void;
 	close():void;
 	send(data:string):void;
-	sendMessage(content:object):string;
+	sendMessage(body:object):string;
 }
 
 type IMInput = {
@@ -101,22 +100,17 @@ class BaseIM implements IM {
 	/**
    * 发送包装好的message
    */
-	public sendMessage(content: object): string {
+	public sendMessage(body: object): string {
 		const messageId = `msg_${generateRandomId()}`
-		const params = {
-			messageId,
-			...wsDefaultOptions,
-			receiverAppId: this.appKey,
-			content
-		}
+		body["messageId"] = messageId;
 		if (this.getReadyState() === 1) {
 			// 加上协议码
-			const msg = makeMsgBody(5, params);
+			const msg = makeMsgBody(5, body);
 			this.send(msg);
 		} else {
 			// 消息待重连后重发
 			actionQueue.push(() => {
-				this.sendMessage(content);
+				this.sendMessage(body);
 			});
 			// 非连接中状态都重连
 			if (this.getReadyState() !== 0) {
