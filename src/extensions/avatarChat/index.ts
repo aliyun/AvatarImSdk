@@ -1,5 +1,5 @@
 import { BaseIM,IM,IMInput } from '../../index'
-import { startDefaultOptions } from './options'
+import { startDefaultOptions,messageDefaultOptions } from './settings'
 import { MESSAGE } from '../../const';
 
 type StartOptions = {
@@ -21,6 +21,16 @@ export default class AvatarChatIM extends BaseIM implements IM {
 
 	constructor(options:IMInput){
 		super(options);
+	}
+
+	public sendMessage(content: object): string {
+		const params = {
+			...messageDefaultOptions,
+			receiverAppId: this.appKey,
+			content
+		}
+		const messageId = super.sendMessage(params);
+		return messageId
 	}
 
 	public startSession(options:StartOptions){
