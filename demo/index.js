@@ -302,7 +302,7 @@
 	 * 拼接完整url
 	 */
 	function getFullUrl(url, token, appId, tenant) {
-	    return `${url}?t=${token}&app=${appId}&tenant=${tenant}`;
+	    return `${url}?token=${token}&app=${appId}&tenant=${tenant}`;
 	}
 
 	class BaseIM {
