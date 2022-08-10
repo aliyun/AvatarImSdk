@@ -28,5 +28,5 @@ export function generateRandomId(): string {
  * 拼接完整url
  */
 export function getFullUrl(url:string, token:string, appId:string, tenantId:string){
-  return `${url}?token=${token}&app=${appId}&tenant=${tenantId}`;
+  return `${url}?t=${token}&app=${appId}&tenant=${tenantId}`;
  }
