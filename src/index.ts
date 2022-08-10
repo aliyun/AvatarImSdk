@@ -212,7 +212,7 @@ class BaseIM implements IM {
 		})
 		this.on(ACK, (msg)=>{
 			if(msg?.error){
-				this.onACKErrorCallback(msg.error); // 传递错误
+				this.onACKErrorCallback?.(msg.error); // 传递错误
 			}
 		})
     const onOpen = () => {
