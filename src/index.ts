@@ -40,6 +40,7 @@ class BaseIM implements IM {
   protected _pongInterval: any;
 	protected im: Socket; // Socket实例
 
+	protected localOpenStatus: boolean = false; // true代表web端主动开启，false代表web端主动断开
 	protected sendMsgQueue: MsgQueue;
 	protected receiveMsgQueue: MsgQueue;
 
@@ -66,6 +67,7 @@ class BaseIM implements IM {
 		/**尝试建立连接*/
 		try{
 			const im = new Socket(this.url);
+			this.localOpenStatus = true;
 			this._bindEvt(im); // 绑定imtt事件
 			Object.assign(this, {
 				im,
@@ -86,6 +88,7 @@ class BaseIM implements IM {
    */
 	public close(): void {
 		this._clearInterval();
+		this.localOpenStatus = false;
 		this.im.close();
 	}
 
@@ -94,7 +97,9 @@ class BaseIM implements IM {
    * @param {Object} data
    */
 	public send(data: string): void {
-		this.im.send(data);
+		if(this.localOpenStatus){ // 确保web端是在主动打开的状态，才去发消息
+			this.im.send(data);
+		}
 	}
 
 	/**
