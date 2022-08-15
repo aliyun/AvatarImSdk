@@ -115,6 +115,7 @@ class BaseIM implements IM {
 			// 非连接中状态都重连
 			if (this.getReadyState() !== 0) {
 				this._reconnect.exec('POSTMESSAGE');
+				console.log('REC,非连接中状态都重连')
 			}
 		}
 		return messageId
@@ -256,6 +257,7 @@ class BaseIM implements IM {
 					* IM主动下行的连接断开消息，如IM的会话超时断开，连接踢除，心跳超时断开等
 				*/
 				case '2':{
+					console.log('REC,2,IM的会话超时断开，连接踢除，心跳超时断开',data);
 					const { reason } = getMsgBody(2, data);
 					this.emit(CLOSE, reason);
 					// 心跳超时，服务端重启，单元切流，立即重连
