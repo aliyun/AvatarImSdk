@@ -103,9 +103,10 @@ class BaseIM implements IM {
 	}
 
 	/**
-   * 发送包装好的message
+   * 发送包装好的message	
    */
 	public sendMessage(body: object): string {
+		if(!this.localOpenStatus) return;
 		const messageId = `msg_${generateRandomId()}`
 		body["messageId"] = messageId;
 		if (this.getReadyState() === 1) {
