@@ -1,6 +1,6 @@
 {
   "name": "aliyun-avatar-im-sdk",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A javascript/typescript sdk for Instant Messaging(IM) with avatars from Alibaba DAMO Academy",
   "main": "lib/index.js",
   "module": "es/index.js",

@@ -3,7 +3,7 @@ avatar-im-sdk是一个web端与云渲染数字人交互的工具，提供了上�
 
 ## 安装
 ```javascript
-npm install alife-avatar-im-sdk
+npm i aliyun-avatar-im-sdk
 ```
 
 ## 使用示例
