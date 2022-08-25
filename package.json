@@ -1,5 +1,5 @@
 {
-  "name": "alife-avatar-im-sdk",
+  "name": "aliyun-avatar-im-sdk",
   "version": "0.1.4",
   "description": "A javascript/typescript sdk for Instant Messaging(IM) with avatars from Alibaba DAMO Academy",
   "main": "lib/index.js",
